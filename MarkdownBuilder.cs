@@ -5,13 +5,12 @@ namespace MarkdownWikiGenerator
 {
     public class MarkdownBuilder
     {
+        private readonly StringBuilder sb = new StringBuilder();
+
         public static string MarkdownCodeQuote(string code)
         {
             return "`" + code + "`";
         }
-
-
-        StringBuilder sb = new StringBuilder();
 
         public void Append(string text)
         {
@@ -94,7 +93,7 @@ namespace MarkdownWikiGenerator
         public void Table(string[] headers, IEnumerable<string[]> items)
         {
             sb.Append("| ");
-            foreach (var item in headers)
+            foreach (string item in headers)
             {
                 sb.Append(item);
                 sb.Append(" | ");
@@ -102,18 +101,17 @@ namespace MarkdownWikiGenerator
             sb.AppendLine();
 
             sb.Append("| ");
-            foreach (var item in headers)
+            foreach (string item in headers)
             {
                 sb.Append("---");
                 sb.Append(" | ");
             }
             sb.AppendLine();
 
-
-            foreach (var item in items)
+            foreach (string[] item in items)
             {
                 sb.Append("| ");
-                foreach (var item2 in item)
+                foreach (string item2 in item)
                 {
                     sb.Append(item2);
                     sb.Append(" | ");

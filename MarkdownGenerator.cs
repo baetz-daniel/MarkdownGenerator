@@ -306,19 +306,18 @@ namespace MarkdownWikiGenerator
                         {
                             XmlDocumentComment lookup     = null;
                             Type[]             interfaces = t.GetInterfaces();
-
                             for (int i = 0; i < interfaces.Length && lookup == null; i++)
                             {
                                 lookup = commentLookup[interfaces[i].FullName]
                                     .FirstOrDefault(
                                         x => (x.MemberName == name(item2) ||
                                               x.MemberName.StartsWith(name(item2) + "`")) && get(item2, x));
-                                if (lookup != null && (lookup.Summary?.Trim()
+                                if (lookup == null || (lookup.Summary?.Trim()
                                                              .Equals(
                                                                  "inheritdoc",
                                                                  StringComparison.InvariantCultureIgnoreCase) ?? true))
                                 {
-                                    return _lookupInterfaces(interfaces[i]);
+                                    lookup = _lookupInterfaces(interfaces[i]);
                                 }
                             }
 
@@ -332,8 +331,7 @@ namespace MarkdownWikiGenerator
                                 .FirstOrDefault(
                                     x => (x.MemberName == name(item2) ||
                                           x.MemberName.StartsWith(name(item2) + "`")) && get(item2, x));
-
-                            if (lookup != null && (lookup.Summary?.Trim()
+                            if (lookup == null || (lookup.Summary?.Trim()
                                                          .Equals(
                                                              "inheritdoc",
                                                              StringComparison.InvariantCultureIgnoreCase) ?? true))

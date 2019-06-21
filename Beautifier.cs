@@ -42,7 +42,7 @@ namespace MarkdownWikiGenerator
                            : t.GetGenericTypeDefinition().Name, @"`.+$", "") + "<" + innerFormat + ">";
         }
 
-        public static string ToMarkdownMethodInfo(MethodBase methodInfo)
+        public static string ToMarkdownMethodInfo(MethodInfo methodInfo)
         {
             bool isExtension = methodInfo.GetCustomAttributes<ExtensionAttribute>(false).Any();
 
@@ -58,6 +58,24 @@ namespace MarkdownWikiGenerator
                                                     });
 
             return methodInfo.Name + "(" + (isExtension ? "this " : "") + string.Join(", ", seq) + ")";
+        }
+
+        public static string ToMarkdownConstructorInfo(ConstructorInfo methodInfo)
+        {
+            bool isExtension = methodInfo.GetCustomAttributes<ExtensionAttribute>(false).Any();
+
+            IEnumerable<string> seq = methodInfo.GetParameters()
+                                                .Select(
+                                                    x =>
+                                                    {
+                                                        string suffix = x.HasDefaultValue
+                                                            ? " = " + (x.DefaultValue ?? "null")
+                                                            : "";
+                                                        return "<code>" + BeautifyType(x.ParameterType) + "</code> " + x.Name +
+                                                               suffix;
+                                                    });
+
+            return methodInfo.DeclaringType.Name + "(" + (isExtension ? "this " : "") + string.Join(", ", seq) + ")";
         }
 
         public static string ReplaceLinks(string value)

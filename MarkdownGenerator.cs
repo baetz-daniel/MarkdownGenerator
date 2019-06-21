@@ -99,7 +99,7 @@ namespace MarkdownWikiGenerator
             {
                 BuildTable(
                     mb, "Constructors", GetConstructors(type),
-                    x => x.Name, x => "#ctor", Beautifier.ToMarkdownMethodInfo, (info, comment) =>
+                    x => x.Name, x => "#ctor", Beautifier.ToMarkdownConstructorInfo, (info, comment) =>
                     {
                         ParameterInfo[] param = info.GetParameters();
                         return param.Length == comment.Parameters.Count && param.All(

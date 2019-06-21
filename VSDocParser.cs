@@ -125,7 +125,7 @@ namespace MarkdownWikiGenerator
                 if (typeName.StartsWith(ns))
                 {
                     return
-                        $"[{typeName}]({Regex.Replace(typeName, "\\.(?:.(?!\\.))+$", me => me.Groups[0].Value.Replace(".", "#").ToLower())})";
+                        $"<a href=\"{Regex.Replace(typeName, "\\.(?:.(?!\\.))+$", me => me.Groups[0].Value.Replace(".", "#").ToLower())}\">{typeName}</a>";
                 }
             }
             return $"`{typeName}`";

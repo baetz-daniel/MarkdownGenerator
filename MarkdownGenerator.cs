@@ -101,11 +101,12 @@ namespace MarkdownWikiGenerator
                     mb, "Constructors", GetConstructors(type),
                     x => x.Name, x => "#ctor", Beautifier.ToMarkdownMethodInfo, (info, comment) =>
                     {
-                        var param = info.GetParameters();
-                        return param.Length == comment.Parameters.Count && param.All(p =>
-                        {
-                            return comment.Parameters.ContainsKey(p.Name);
-                        });
+                        ParameterInfo[] param = info.GetParameters();
+                        return param.Length == comment.Parameters.Count && param.All(
+                                   p =>
+                                   {
+                                       return comment.Parameters.ContainsKey(p.Name);
+                                   });
                     });
                 BuildTable(
                     mb, "Fields", GetFields(type),
@@ -116,16 +117,19 @@ namespace MarkdownWikiGenerator
                     x => Beautifier.BeautifyType(x.PropertyType), x => x.Name, x => x.Name, (info, comment) => true);
                 BuildTable(
                     mb, "Events", GetEvents(type),
-                    x => Beautifier.BeautifyType(x.EventHandlerType), x => x.Name, x => x.Name, (info, comment) => true);
+                    x => Beautifier.BeautifyType(x.EventHandlerType), x => x.Name, x => x.Name,
+                    (info, comment) => true);
                 BuildTable(
                     mb, "Methods", GetMethods(type),
-                    x => Beautifier.BeautifyType(x.ReturnType), x => x.Name, Beautifier.ToMarkdownMethodInfo, (info, comment) =>
+                    x => Beautifier.BeautifyType(x.ReturnType), x => x.Name, Beautifier.ToMarkdownMethodInfo,
+                    (info, comment) =>
                     {
-                        var param = info.GetParameters();
-                        return param.Length == comment.Parameters.Count && param.All( p =>
-                        {
-                            return comment.Parameters.ContainsKey(p.Name);
-                        });
+                        ParameterInfo[] param = info.GetParameters();
+                        return param.Length == comment.Parameters.Count && param.All(
+                                   p =>
+                                   {
+                                       return comment.Parameters.ContainsKey(p.Name);
+                                   });
                     });
                 BuildTable(
                     mb, "Static Fields", GetStaticFields(type),
@@ -135,17 +139,20 @@ namespace MarkdownWikiGenerator
                     x => Beautifier.BeautifyType(x.PropertyType), x => x.Name, x => x.Name, (info, comment) => true);
                 BuildTable(
                     mb, "Static Methods", GetStaticMethods(type),
-                    x => Beautifier.BeautifyType(x.ReturnType), x => x.Name, Beautifier.ToMarkdownMethodInfo, (info, comment) =>
+                    x => Beautifier.BeautifyType(x.ReturnType), x => x.Name, Beautifier.ToMarkdownMethodInfo,
+                    (info, comment) =>
                     {
-                        var param = info.GetParameters();
-                        return param.Length == comment.Parameters.Count && param.All(p =>
-                        {
-                            return comment.Parameters.ContainsKey(p.Name);
-                        });
+                        ParameterInfo[] param = info.GetParameters();
+                        return param.Length == comment.Parameters.Count && param.All(
+                                   p =>
+                                   {
+                                       return comment.Parameters.ContainsKey(p.Name);
+                                   });
                     });
                 BuildTable(
                     mb, "Static Events", GetStaticEvents(type),
-                    x => Beautifier.BeautifyType(x.EventHandlerType), x => x.Name, x => x.Name, (info, comment) => true);
+                    x => Beautifier.BeautifyType(x.EventHandlerType), x => x.Name, x => x.Name,
+                    (info, comment) => true);
             }
 
             return mb.ToString();
@@ -292,14 +299,14 @@ namespace MarkdownWikiGenerator
                     seq = array.OrderBy(name);
                 }
 
-                var data = seq.Select(
+                IEnumerable<MarkdownBuilder.DropdownItem> data = seq.Select(
                     item2 =>
                     {
                         XmlDocumentComment _lookupInterfaces(Type t)
                         {
                             XmlDocumentComment lookup     = null;
                             Type[]             interfaces = t.GetInterfaces();
-                            
+
                             for (int i = 0; i < interfaces.Length && lookup == null; i++)
                             {
                                 lookup = commentLookup[interfaces[i].FullName]
@@ -307,7 +314,9 @@ namespace MarkdownWikiGenerator
                                         x => (x.MemberName == name(item2) ||
                                               x.MemberName.StartsWith(name(item2) + "`")) && get(item2, x));
                                 if (lookup != null && (lookup.Summary?.Trim()
-                                          .Equals("inheritdoc", StringComparison.InvariantCultureIgnoreCase) ?? true))
+                                                             .Equals(
+                                                                 "inheritdoc",
+                                                                 StringComparison.InvariantCultureIgnoreCase) ?? true))
                                 {
                                     return _lookupInterfaces(interfaces[i]);
                                 }
@@ -319,24 +328,25 @@ namespace MarkdownWikiGenerator
                         XmlDocumentComment _lookupType(Type t)
                         {
                             if (t == null) { return null; }
-                            var lookup = commentLookup[t.FullName]
+                            XmlDocumentComment lookup = commentLookup[t.FullName]
                                 .FirstOrDefault(
                                     x => (x.MemberName == name(item2) ||
                                           x.MemberName.StartsWith(name(item2) + "`")) && get(item2, x));
 
                             if (lookup != null && (lookup.Summary?.Trim()
-                                                         .Equals("inheritdoc", StringComparison.InvariantCultureIgnoreCase) ?? true))
+                                                         .Equals(
+                                                             "inheritdoc",
+                                                             StringComparison.InvariantCultureIgnoreCase) ?? true))
                             {
                                 lookup = _lookupInterfaces(t) ?? _lookupType(t.BaseType);
                             }
                             return lookup;
                         }
 
-                        
                         return new MarkdownBuilder.DropdownItem
                         {
-                            Type    = MarkdownBuilder.MarkdownCodeQuote(type(item2)),
-                            Name    = finalName(item2),
+                            Type               = MarkdownBuilder.MarkdownCodeQuote(type(item2)),
+                            Name               = finalName(item2),
                             XmlDocumentComment = _lookupType(this.type)
                         };
                     });

@@ -39,7 +39,7 @@ namespace MarkdownWikiGenerator
         {
             MarkdownBuilder mb = new MarkdownBuilder();
 
-            mb.HeaderWithCode(2, Beautifier.BeautifyType(type));
+            mb.HeaderWithCode(1, Beautifier.BeautifyType(type));
             mb.AppendLine();
 
             string desc = commentLookup[type.FullName].FirstOrDefault(x => x.MemberType == MemberType.Type)?.Summary ??
@@ -93,38 +93,59 @@ namespace MarkdownWikiGenerator
                                 .ToArray();
 
                 BuildTable(
-                    mb, "Enum", enums, x => x.Value.ToString(), x => x.Name, x => x.Name);
+                    mb, "Enum", enums, x => x.Value.ToString(), x => x.Name, x => x.Name, (info, comment) => true);
             }
             else
             {
                 BuildTable(
                     mb, "Constructors", GetConstructors(type),
-                    x => x.Name, x => "#ctor", Beautifier.ToMarkdownConstructorInfo);
+                    x => x.Name, x => "#ctor", Beautifier.ToMarkdownMethodInfo, (info, comment) =>
+                    {
+                        var param = info.GetParameters();
+                        return param.Length == comment.Parameters.Count && param.All(p =>
+                        {
+                            return comment.Parameters.ContainsKey(p.Name);
+                        });
+                    });
                 BuildTable(
                     mb, "Fields", GetFields(type),
                     x => Beautifier.BeautifyType(x.FieldType),
-                    x => x.Name, x => x.Name);
+                    x => x.Name, x => x.Name, (info, comment) => true);
                 BuildTable(
                     mb, "Properties", GetProperties(type),
-                    x => Beautifier.BeautifyType(x.PropertyType), x => x.Name, x => x.Name);
+                    x => Beautifier.BeautifyType(x.PropertyType), x => x.Name, x => x.Name, (info, comment) => true);
                 BuildTable(
                     mb, "Events", GetEvents(type),
-                    x => Beautifier.BeautifyType(x.EventHandlerType), x => x.Name, x => x.Name);
+                    x => Beautifier.BeautifyType(x.EventHandlerType), x => x.Name, x => x.Name, (info, comment) => true);
                 BuildTable(
                     mb, "Methods", GetMethods(type),
-                    x => Beautifier.BeautifyType(x.ReturnType), x => x.Name, Beautifier.ToMarkdownMethodInfo);
+                    x => Beautifier.BeautifyType(x.ReturnType), x => x.Name, Beautifier.ToMarkdownMethodInfo, (info, comment) =>
+                    {
+                        var param = info.GetParameters();
+                        return param.Length == comment.Parameters.Count && param.All( p =>
+                        {
+                            return comment.Parameters.ContainsKey(p.Name);
+                        });
+                    });
                 BuildTable(
                     mb, "Static Fields", GetStaticFields(type),
-                    x => Beautifier.BeautifyType(x.FieldType), x => x.Name, x => x.Name);
+                    x => Beautifier.BeautifyType(x.FieldType), x => x.Name, x => x.Name, (info, comment) => true);
                 BuildTable(
                     mb, "Static Properties", GetStaticProperties(type),
-                    x => Beautifier.BeautifyType(x.PropertyType), x => x.Name, x => x.Name);
+                    x => Beautifier.BeautifyType(x.PropertyType), x => x.Name, x => x.Name, (info, comment) => true);
                 BuildTable(
                     mb, "Static Methods", GetStaticMethods(type),
-                    x => Beautifier.BeautifyType(x.ReturnType), x => x.Name, Beautifier.ToMarkdownMethodInfo);
+                    x => Beautifier.BeautifyType(x.ReturnType), x => x.Name, Beautifier.ToMarkdownMethodInfo, (info, comment) =>
+                    {
+                        var param = info.GetParameters();
+                        return param.Length == comment.Parameters.Count && param.All(p =>
+                        {
+                            return comment.Parameters.ContainsKey(p.Name);
+                        });
+                    });
                 BuildTable(
                     mb, "Static Events", GetStaticEvents(type),
-                    x => Beautifier.BeautifyType(x.EventHandlerType), x => x.Name, x => x.Name);
+                    x => Beautifier.BeautifyType(x.EventHandlerType), x => x.Name, x => x.Name, (info, comment) => true);
             }
 
             return mb.ToString();
@@ -255,17 +276,15 @@ namespace MarkdownWikiGenerator
                     .ToArray();
         }
 
-        private void BuildTable<T>(MarkdownBuilder mb,   string          label, T[]             array,
-                                   Func<T, string> type, Func<T, string> name,  Func<T, string> finalName)
+        private void BuildTable<T>(MarkdownBuilder                   mb,   string          label, T[] array,
+                                   Func<T, string>                   type, Func<T, string> name,
+                                   Func<T, string>                   finalName,
+                                   Func<T, XmlDocumentComment, bool> get)
         {
             if (array.Any())
             {
-                mb.AppendLine(label);
+                mb.Header(2, label);
                 mb.AppendLine();
-
-                string[] head = this.type.IsEnum
-                    ? new[] { "Value", "Name", "Summary" }
-                    : new[] { "Type", "Name", "Summary" };
 
                 IEnumerable<T> seq = array;
                 if (!this.type.IsEnum)
@@ -273,55 +292,57 @@ namespace MarkdownWikiGenerator
                     seq = array.OrderBy(name);
                 }
 
-                IEnumerable<string[]> data = seq.Select(
+                var data = seq.Select(
                     item2 =>
                     {
-                        string _lookupInterfaces(Type t)
+                        XmlDocumentComment _lookupInterfaces(Type t)
                         {
-                            string summary    = null;
-                            Type[] interfaces = t.GetInterfaces();
-
-                            for (int i = 0; i < interfaces.Length && summary == null; i++)
+                            XmlDocumentComment lookup     = null;
+                            Type[]             interfaces = t.GetInterfaces();
+                            
+                            for (int i = 0; i < interfaces.Length && lookup == null; i++)
                             {
-                                summary = commentLookup[interfaces[i].FullName]
-                                          .FirstOrDefault(
-                                              x => x.MemberName == name(item2) ||
-                                                   x.MemberName.StartsWith(name(item2) + "`"))
-                                          ?.Summary;
-                                if (summary?.Trim()
-                                           .Equals("inheritdoc", StringComparison.InvariantCultureIgnoreCase) ?? true)
+                                lookup = commentLookup[interfaces[i].FullName]
+                                    .FirstOrDefault(
+                                        x => (x.MemberName == name(item2) ||
+                                              x.MemberName.StartsWith(name(item2) + "`")) && get(item2, x));
+                                if (lookup != null && (lookup.Summary?.Trim()
+                                          .Equals("inheritdoc", StringComparison.InvariantCultureIgnoreCase) ?? true))
                                 {
                                     return _lookupInterfaces(interfaces[i]);
                                 }
                             }
 
-                            return summary;
+                            return lookup;
                         }
 
-                        string _lookupType(Type t)
+                        XmlDocumentComment _lookupType(Type t)
                         {
-                            if (t == null) { return string.Empty; }
-                            string summary = commentLookup[t.FullName]
-                                             .FirstOrDefault(
-                                                 x => x.MemberName == name(item2) ||
-                                                      x.MemberName.StartsWith(name(item2) + "`"))
-                                             ?.Summary;
-                            if (summary?.Trim().Equals("inheritdoc", StringComparison.InvariantCultureIgnoreCase) ??
-                                true)
+                            if (t == null) { return null; }
+                            var lookup = commentLookup[t.FullName]
+                                .FirstOrDefault(
+                                    x => (x.MemberName == name(item2) ||
+                                          x.MemberName.StartsWith(name(item2) + "`")) && get(item2, x));
+
+                            if (lookup != null && (lookup.Summary?.Trim()
+                                                         .Equals("inheritdoc", StringComparison.InvariantCultureIgnoreCase) ?? true))
                             {
-                                summary = _lookupInterfaces(t) ?? _lookupType(t.BaseType);
+                                lookup = _lookupInterfaces(t) ?? _lookupType(t.BaseType);
                             }
-                            return summary ?? string.Empty;
+                            return lookup;
                         }
 
-                        return new[]
+                        
+                        return new MarkdownBuilder.DropdownItem
                         {
-                            MarkdownBuilder.MarkdownCodeQuote(type(item2)), finalName(item2), _lookupType(this.type)
+                            Type    = MarkdownBuilder.MarkdownCodeQuote(type(item2)),
+                            Name    = finalName(item2),
+                            XmlDocumentComment = _lookupType(this.type)
                         };
                     });
 
-                mb.Table(head, data);
-                mb.AppendLine();
+                mb.Dropdown(data);
+                mb.AppendLine("___");
             }
         }
     }
@@ -371,11 +392,7 @@ namespace MarkdownWikiGenerator
 
         private static bool IsRequiredNamespace(Type type, Regex regex)
         {
-            if (regex == null)
-            {
-                return true;
-            }
-            return regex.IsMatch(type.Namespace != null ? type.Namespace : string.Empty);
+            return regex == null || regex.IsMatch(type.Namespace ?? string.Empty);
         }
     }
 }

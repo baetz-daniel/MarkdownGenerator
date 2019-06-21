@@ -21,16 +21,28 @@ namespace MarkdownWikiGenerator
             }
             if (!t.IsGenericType)
             {
+                if (t.HasElementType)
+                {
+                    var nullable = Nullable.GetUnderlyingType(t.GetElementType());
+                    if (nullable != null)
+                    {
+                        return Regex.Replace(
+                            isFull
+                                ? nullable.FullName
+                                : nullable.Name, @"`.+$", "") + "?&";
+                    }
+                }
+                
                 return isFull ? t.FullName : t.Name;
             }
-
             string innerFormat = string.Join(", ", t.GetGenericArguments().Select(x => BeautifyType(x)));
             return Regex.Replace(
-                       isFull ? t.GetGenericTypeDefinition().FullName : t.GetGenericTypeDefinition().Name, @"`.+$",
-                       "") + "<" + innerFormat + ">";
+                       isFull
+                           ? t.GetGenericTypeDefinition().FullName
+                           : t.GetGenericTypeDefinition().Name, @"`.+$", "") + "<" + innerFormat + ">";
         }
 
-        public static string ToMarkdownMethodInfo(MethodInfo methodInfo)
+        public static string ToMarkdownMethodInfo(MethodBase methodInfo)
         {
             bool isExtension = methodInfo.GetCustomAttributes<ExtensionAttribute>(false).Any();
 
@@ -41,29 +53,16 @@ namespace MarkdownWikiGenerator
                                                         string suffix = x.HasDefaultValue
                                                             ? " = " + (x.DefaultValue ?? "null")
                                                             : "";
-                                                        return "`" + BeautifyType(x.ParameterType) + "` " + x.Name +
+                                                        return "<code>" + BeautifyType(x.ParameterType) + "</code> " + x.Name +
                                                                suffix;
                                                     });
 
             return methodInfo.Name + "(" + (isExtension ? "this " : "") + string.Join(", ", seq) + ")";
         }
 
-        public static string ToMarkdownConstructorInfo(ConstructorInfo methodInfo)
+        public static string ReplaceLinks(string value)
         {
-            bool isExtension = methodInfo.GetCustomAttributes<ExtensionAttribute>(false).Any();
-
-            IEnumerable<string> seq = methodInfo.GetParameters()
-                                                .Select(
-                                                    x =>
-                                                    {
-                                                        string suffix = x.HasDefaultValue
-                                                            ? " = " + (x.DefaultValue ?? "null")
-                                                            : "";
-                                                        return "`" + BeautifyType(x.ParameterType) + "` " + x.Name +
-                                                               suffix;
-                                                    });
-
-            return methodInfo.DeclaringType.Name + "(" + (isExtension ? "this " : "") + string.Join(", ", seq) + ")";
+            return Regex.Replace(value, "<see href=\"(.+)\" \\/>", "see <a href=\"$1\">$1</a>");
         }
     }
 }

@@ -135,7 +135,7 @@ namespace MarkdownWikiGenerator
             {
                 if (string.IsNullOrWhiteSpace(item.XmlDocumentComment?.Summary))
                 {
-                    sb.AppendLine($"&nbsp;&nbsp;&nbsp;&nbsp;{item.Type} {item.Name}<br />");
+                    sb.AppendLine($"<dl>&nbsp;&nbsp;&nbsp;&nbsp;{item.Type} {item.Name}<br /></dl>");
                     continue;
                 }
                 sb.Append($"<details><summary>{item.Type} {Regex.Replace(item.Name, @"\r\n?|\n", " ")}</summary><h3>Summary:</h3><p>{Beautifier.ReplaceLinks(item.XmlDocumentComment.Summary)}</p>");

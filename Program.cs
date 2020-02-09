@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace MarkdownWikiGenerator
+namespace MarkdownGenerator
 {
     class Program
     {

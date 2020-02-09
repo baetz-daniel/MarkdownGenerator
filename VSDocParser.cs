@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace MarkdownWikiGenerator
+namespace MarkdownGenerator
 {
     public enum MemberType
     {
@@ -61,56 +61,49 @@ namespace MarkdownWikiGenerator
                                         return null;
                                     }
 
-                                    string summaryXml = x.Elements("summary").FirstOrDefault()?.ToString()
-                                                     ?? x.Element("summary")?.ToString()
-                                                     ?? x.Element("inheritdoc")?.Name.LocalName ?? string.Empty;
-                                    summaryXml = Regex.Replace(summaryXml, @"<\/?summary>", string.Empty);
-                                    summaryXml = Regex.Replace(summaryXml, @"<para\s*/>", Environment.NewLine);
-                                    summaryXml = Regex.Replace(
-                                        summaryXml, @"<see cref=""\w:([^\""]*)""\s*\/>",
+                                    string summary = ((string)x.Element("summary")
+                                                   ?? x.Element("inheritdoc")?.Name.LocalName ?? string.Empty).Trim();
+                                    summary = Regex.Replace(summary, @"<para\s*/>", "<br />");
+                                    summary = Regex.Replace(
+                                        summary, @"\r?\n", "<br />");
+                                    summary = Regex.Replace(
+                                        summary, @"\t|\\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
+                                    summary = Regex.Replace(
+                                        summary, @"<see cref=""\w:([^\""]*)""\s*\/>",
                                         m => ResolveSeeElement(m, assemblyName));
-
-                                    string parsed = Regex.Replace(
-                                        summaryXml, @"<(type)*paramref name=""([^\""]*)""\s*\/>",
+                                    summary = Regex.Replace(
+                                        summary, @"<(type)*paramref name=""([^\""]*)""\s*\/>",
                                         e => $"`{e.Groups[1].Value}`");
 
-                                    string summary = parsed;
-
-                                    if (summary != "")
-                                    {
-                                        summary = string.Join(
-                                            "  ",
-                                            summary.Split(
-                                                       new[] { "\r", "\n", "\t" },
-                                                       StringSplitOptions.RemoveEmptyEntries)
-                                                   .Select(y => y.Trim()));
-                                    }
-
-                                    string returns = (string)x.Element("returns") ?? "";
-                                    string remarks = (string)x.Element("remarks") ?? "";
-                                    Dictionary<string, string> parameters = x.Elements("param")
-                                                                             .Select(
-                                                                                 e => Tuple.Create(
-                                                                                     e.Attribute("name").Value, e))
-                                                                             .Distinct(
-                                                                                 new Item1EqualityCompaerer<string,
-                                                                                     XElement>())
-                                                                             .ToDictionary(
-                                                                                 e => e.Item1, e => e.Item2.Value);
-
-                                    string className = memberType == MemberType.Type
-                                        ? match.Groups[2].Value + "." + match.Groups[3].Value
-                                        : match.Groups[2].Value;
+                                    string remarks = Regex.Replace(
+                                        ((string)x.Element("remarks") ?? "").Trim(), @"<para\s*/>", "<br />");
+                                    remarks = Regex.Replace(
+                                        remarks, @"\r?\n", "<br />");
+                                    remarks = Regex.Replace(
+                                        remarks, @"\t|\\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
+                                    remarks = Regex.Replace(
+                                        remarks, @"<see cref=""\w:([^\""]*)""\s*\/>",
+                                        m => ResolveSeeElement(m, assemblyName));
 
                                     return new XmlDocumentComment
                                     {
                                         MemberType = memberType,
-                                        ClassName  = className,
+                                        ClassName = memberType == MemberType.Type
+                                            ? match.Groups[2].Value + "." + match.Groups[3].Value
+                                            : match.Groups[2].Value,
                                         MemberName = match.Groups[3].Value,
                                         Summary    = summary.Trim(),
                                         Remarks    = remarks.Trim(),
-                                        Parameters = parameters,
-                                        Returns    = returns.Trim()
+                                        Parameters = x.Elements("param")
+                                                      .Select(
+                                                          e => Tuple.Create(
+                                                              e.Attribute("name").Value, e))
+                                                      .Distinct(
+                                                          new Item1EqualityComparer<string,
+                                                              XElement>())
+                                                      .ToDictionary(
+                                                          e => e.Item1, e => e.Item2.Value),
+                                        Returns = ((string)x.Element("returns") ?? "").Trim()
                                     };
                                 })
                             .Where(x => x != null)
@@ -131,7 +124,7 @@ namespace MarkdownWikiGenerator
             return $"`{typeName}`";
         }
 
-        private class Item1EqualityCompaerer<T1, T2> : EqualityComparer<Tuple<T1, T2>>
+        private class Item1EqualityComparer<T1, T2> : EqualityComparer<Tuple<T1, T2>>
         {
             public override bool Equals(Tuple<T1, T2> x, Tuple<T1, T2> y)
             {

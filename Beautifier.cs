@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
-namespace MarkdownWikiGenerator
+namespace MarkdownGenerator
 {
     public static class Beautifier
     {

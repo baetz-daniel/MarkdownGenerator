@@ -2,7 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace MarkdownWikiGenerator
+namespace MarkdownGenerator
 {
     public class MarkdownBuilder
     {

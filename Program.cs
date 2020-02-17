@@ -15,20 +15,20 @@ namespace MarkdownGenerator
             string target         = string.Empty;
             string dest           = "md";
             string namespaceMatch = string.Empty;
-            if (args.Length == 1)
+            switch (args.Length) 
             {
-                target = args[0];
-            }
-            else if (args.Length == 2)
-            {
-                target = args[0];
-                dest   = args[1];
-            }
-            else if (args.Length == 3)
-            {
-                target         = args[0];
-                dest           = args[1];
-                namespaceMatch = args[2];
+                case 1:
+                    target = args[0];
+                    break;
+                case 2:
+                    target = args[0];
+                    dest   = args[1];
+                    break;
+                case 3:
+                    target         = args[0];
+                    dest           = args[1];
+                    namespaceMatch = args[2];
+                    break;
             }
             AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
             {

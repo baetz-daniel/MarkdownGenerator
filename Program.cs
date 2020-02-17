@@ -33,7 +33,7 @@ namespace MarkdownGenerator
             AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
             {
                 string archSpecificPath = Path.Combine(
-                    Path.GetDirectoryName(target) ?? throw new NullReferenceException(),
+                    Directory.GetParent(target).FullName,
                     Environment.Is64BitProcess ? "x64" : "x86", a.Name.Split(new[] { ',' }, 2)[0] + ".dll");
                 return File.Exists(archSpecificPath)
                     ? Assembly.LoadFile(archSpecificPath)

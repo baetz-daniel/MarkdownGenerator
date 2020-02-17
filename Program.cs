@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace MarkdownGenerator
@@ -11,7 +12,7 @@ namespace MarkdownGenerator
         private static void Main(string[] args)
         {
             // put dll & xml on same diretory.
-            string target         = "UniRx.dll"; // :)
+            string target         = string.Empty;
             string dest           = "md";
             string namespaceMatch = string.Empty;
             if (args.Length == 1)
@@ -29,7 +30,15 @@ namespace MarkdownGenerator
                 dest           = args[1];
                 namespaceMatch = args[2];
             }
-
+            AppDomain.CurrentDomain.AssemblyResolve += (s, a) =>
+            {
+                string archSpecificPath = Path.Combine(
+                    Path.GetDirectoryName(target) ?? throw new NullReferenceException(),
+                    Environment.Is64BitProcess ? "x64" : "x86", a.Name.Split(new[] { ',' }, 2)[0] + ".dll");
+                return File.Exists(archSpecificPath)
+                    ? Assembly.LoadFile(archSpecificPath)
+                    : null;
+            };
             MarkdownableType[] types = MarkdownGenerator.Load(target, namespaceMatch);
 
             // Home Markdown Builder
